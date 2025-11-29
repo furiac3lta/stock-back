@@ -9,6 +9,9 @@ public interface ProductService {
 
     List<ProductDto> findAll();
 
+    List<ProductDto> findByBranch(Long branchId);
+
+
     ProductDto findById(Long id);
 
     ProductDto create(ProductDto dto);

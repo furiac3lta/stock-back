@@ -15,6 +15,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.List;
+
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -26,25 +28,58 @@ public class SecurityConfig {
 
         http
                 .csrf(cs -> cs.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // ← IMPORTANTE
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+
+                        // Angular SSR preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // Auth sin token
                         .requestMatchers("/auth/**").permitAll()
-                        .anyRequest().authenticated()
+
+                        // SWAGGER (si lo usas)
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+                        // =============================
+                        //      MULTISUCURSAL
+                        // =============================
+
+                        // Solo ADMIN puede administrar sucursales
+                        .requestMatchers("/branches/**").hasRole("ADMIN")
+
+                        // Solo ADMIN puede transferir stock
+                        .requestMatchers("/stock/transfer").hasRole("ADMIN")
+
+                        // Stock requiere login
+                        .requestMatchers("/stock/**").authenticated()
+
+                        // Productos requiere login
+                        .requestMatchers("/products/**").authenticated()
+
+                        // Categorías requiere login
+                        .requestMatchers("/categories/**").authenticated()
+
+                        // Resto público (si lo necesitás)
+                        .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    // ==========================================
+    //            CORS para Angular 20 SSR
+    // ==========================================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration config = new CorsConfiguration();
 
-        config.addAllowedOriginPattern("*"); // Angular SSR lo necesita así
-        config.addAllowedMethod("*");
-        config.addAllowedHeader("*");
+        config.setAllowedOriginPatterns(List.of("*"));   // ← IMPORTANTE para SSR
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -53,6 +88,9 @@ public class SecurityConfig {
         return source;
     }
 
+    // ==========================================
+    //          AUTH MANAGER / ENCODER
+    // ==========================================
     @Bean
     public AuthenticationManager authManager(AuthenticationConfiguration conf) throws Exception {
         return conf.getAuthenticationManager();

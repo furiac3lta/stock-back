@@ -32,4 +32,9 @@ public class Product {
 
     @Builder.Default
     private Boolean active = true;
+
+    @ManyToOne
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
+
 }

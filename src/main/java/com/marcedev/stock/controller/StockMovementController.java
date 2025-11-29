@@ -1,6 +1,7 @@
 package com.marcedev.stock.controller;
 
 import com.marcedev.stock.dto.StockMovementDto;
+import com.marcedev.stock.dto.StockTransferRequest;
 import com.marcedev.stock.service.StockMovementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
