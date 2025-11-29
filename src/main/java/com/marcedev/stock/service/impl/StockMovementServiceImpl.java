@@ -44,15 +44,31 @@ public class StockMovementServiceImpl implements StockMovementService {
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
+        if (quantity == null || quantity <= 0) {
+            throw new RuntimeException("La cantidad debe ser mayor a 0");
+        }
+
         int previousStock = product.getStock();
         int newStock;
 
-        MovementType movementType = MovementType.valueOf(type);
+        // Convertir IN/OUT a INCREASE/DECREASE
+        MovementType movementType;
 
+        switch (type.toUpperCase()) {
+            case "IN" -> movementType = MovementType.INCREASE;
+            case "OUT" -> movementType = MovementType.DECREASE;
+            default -> throw new RuntimeException("Tipo de movimiento inválido: " + type);
+        }
+
+        // Calcular nuevo stock con validación
         if (movementType == MovementType.INCREASE) {
             newStock = previousStock + quantity;
         } else {
             newStock = previousStock - quantity;
+
+            if (newStock < 0) {
+                throw new RuntimeException("No hay suficiente stock para restar " + quantity);
+            }
         }
 
         product.setStock(newStock);
@@ -75,4 +91,6 @@ public class StockMovementServiceImpl implements StockMovementService {
 
         return dto;
     }
+
+
 }
